@@ -31,6 +31,11 @@ public class LlmClient {
     }
 
     public String chat(String apiUrl, String apiKey, String model, String systemPrompt, String userPrompt) {
+        return chat(apiUrl, apiKey, model, systemPrompt, userPrompt, null);
+    }
+
+    public String chat(String apiUrl, String apiKey, String model, String systemPrompt, String userPrompt,
+                       Integer maxTokens) {
         String url = apiUrl.endsWith("/") ? apiUrl + "chat/completions" : apiUrl + "/chat/completions";
 
         Map<String, Object> body = new HashMap<>();
@@ -40,6 +45,9 @@ public class LlmClient {
                 Map.of("role", "user", "content", userPrompt)
         ));
         body.put("temperature", 0.3);
+        if (maxTokens != null) {
+            body.put("max_tokens", maxTokens);
+        }
 
         try {
             String jsonBody = objectMapper.writeValueAsString(body);

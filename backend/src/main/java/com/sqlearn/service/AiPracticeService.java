@@ -79,11 +79,32 @@ public class AiPracticeService {
             config.setUserId(userId);
             config.setCreatedAt(now);
         }
+        String apiKey = req.apiKey() == null ? "" : req.apiKey().trim();
+        if (apiKey.isEmpty()) {
+            if (config.getId() == null) {
+                throw new BizException("首次配置必须填写 API 密钥");
+            }
+            // 留空则保留原密钥
+            apiKey = config.getApiKey();
+        }
         config.setApiUrl(req.apiUrl().trim());
-        config.setApiKey(req.apiKey().trim());
+        config.setApiKey(apiKey);
         config.setModelName(req.modelName().trim());
         config.setUpdatedAt(now);
         aiConfigRepository.save(config);
+    }
+
+    public void testConnection(Long userId, AiConfigRequest req) {
+        String apiKey = req.apiKey() == null ? "" : req.apiKey().trim();
+        if (apiKey.isEmpty()) {
+            AiConfig existing = aiConfigRepository.findByUserId(userId).orElse(null);
+            apiKey = existing == null ? "" : existing.getApiKey();
+        }
+        if (apiKey.isEmpty()) {
+            throw new BizException("请填写 API 密钥");
+        }
+        llmClient.chat(req.apiUrl().trim(), apiKey, req.modelName().trim(),
+                "你是连通性测试助手。", "请只回复两个字母：ok", 5);
     }
 
     public void init(Long userId) {

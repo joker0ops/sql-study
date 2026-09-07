@@ -38,6 +38,13 @@ public class AiController {
         return ApiResponse.ok();
     }
 
+    @PostMapping("/test")
+    public ApiResponse<Void> test(@RequestAttribute("userId") Long userId,
+                                  @Valid @RequestBody AiConfigRequest request) {
+        aiPracticeService.testConnection(userId, request);
+        return ApiResponse.ok();
+    }
+
     @PostMapping("/init")
     public ApiResponse<Void> init(@RequestAttribute("userId") Long userId) {
         aiPracticeService.init(userId);

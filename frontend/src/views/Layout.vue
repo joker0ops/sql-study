@@ -19,6 +19,7 @@
           </span>
           <template #dropdown>
             <el-dropdown-menu>
+              <el-dropdown-item command="aiConfig">AI 配置</el-dropdown-item>
               <el-dropdown-item command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -32,18 +33,22 @@
         <span class="ai-float-text">AI 提问</span>
       </div>
     </el-main>
+
+    <AiConfigDialog v-model="aiConfigVisible" />
   </el-container>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { User, ArrowDown } from '@element-plus/icons-vue'
 import { useAuthStore } from '../stores/auth'
+import AiConfigDialog from '../components/AiConfigDialog.vue'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const aiConfigVisible = ref(false)
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/courses')) return '/courses'
@@ -52,7 +57,9 @@ const activeMenu = computed(() => {
 })
 
 function onCommand(command) {
-  if (command === 'logout') {
+  if (command === 'aiConfig') {
+    aiConfigVisible.value = true
+  } else if (command === 'logout') {
     auth.logout()
     router.push('/login')
   }
