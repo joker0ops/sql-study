@@ -1,0 +1,32 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: sql-learn
+  datasource:
+    # 本地开发默认使用内嵌 H2；Docker 部署时通过环境变量切换到 MySQL
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:file:./data/sqlearn;AUTO_SERVER=TRUE}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.h2.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED:true}
+      path: /h2-console
+
+app:
+  jwt:
+    # 生产环境请通过环境变量 APP_JWT_SECRET 覆盖（至少 32 字符）
+    secret: ${APP_JWT_SECRET:SqlLearnDemoSecretKeyForJwtSigning_2024_MustBeLongEnough_1234567890}
+    # token 有效期：24 小时
+    expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}

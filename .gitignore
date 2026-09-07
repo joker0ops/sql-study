@@ -1,0 +1,22 @@
+# Maven
+backend/target/
+.m2/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+.npm-cache/
+
+# 运行时数据（H2 数据库文件）
+backend/data/
+/data/
+
+# 环境变量与密钥
+.env
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
