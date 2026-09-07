@@ -8,6 +8,7 @@ public record AiStatusResponse(
         String maskedApiKey,
         String modelName,
         boolean databaseCreated,
-        List<TableSchema> schema
+        List<TableSchema> schema,
+        List<TableRelation> relations
 ) {
 }

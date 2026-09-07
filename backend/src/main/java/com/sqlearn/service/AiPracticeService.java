@@ -12,6 +12,7 @@ import com.sqlearn.dto.AiStatsResponse;
 import com.sqlearn.dto.AiStatusResponse;
 import com.sqlearn.dto.HeatmapDay;
 import com.sqlearn.dto.SqlResult;
+import com.sqlearn.dto.TableRelation;
 import com.sqlearn.dto.TableSchema;
 import com.sqlearn.entity.AiConfig;
 import com.sqlearn.entity.ExerciseRecord;
@@ -64,12 +65,13 @@ public class AiPracticeService {
         boolean configured = configOpt.isPresent();
         boolean databaseCreated = practiceDbService.isInitialized(userId);
         List<TableSchema> schema = databaseCreated ? practiceDbService.getSchema(userId) : List.of();
+        List<TableRelation> relations = databaseCreated ? practiceDbService.getRelations() : List.of();
         if (configured) {
             AiConfig c = configOpt.get();
             return new AiStatusResponse(true, c.getApiUrl(), maskKey(c.getApiKey()),
-                    c.getModelName(), databaseCreated, schema);
+                    c.getModelName(), databaseCreated, schema, relations);
         }
-        return new AiStatusResponse(false, null, null, null, databaseCreated, schema);
+        return new AiStatusResponse(false, null, null, null, databaseCreated, schema, relations);
     }
 
     public void saveConfig(Long userId, AiConfigRequest req) {
@@ -118,7 +120,8 @@ public class AiPracticeService {
     public AiQuestionResponse generateQuestion(Long userId) {
         AiConfig config = requireConfig(userId);
         practiceDbService.initDatabase(userId);
-        String schemaDesc = buildSchemaDescription(practiceDbService.getSchema(userId));
+        String schemaDesc = buildSchemaDescription(
+                practiceDbService.getSchema(userId), practiceDbService.getRelations());
 
         String content = llmClient.chat(config.getApiUrl(), config.getApiKey(), config.getModelName(),
                 QUESTION_SYSTEM, "数据库表结构如下：\n" + schemaDesc + "\n请出题。");
@@ -220,11 +223,21 @@ public class AiPracticeService {
         return "****" + key.substring(key.length() - 4);
     }
 
-    private String buildSchemaDescription(List<TableSchema> schema) {
+    private String buildSchemaDescription(List<TableSchema> schema, List<TableRelation> relations) {
         StringBuilder sb = new StringBuilder();
         for (TableSchema t : schema) {
+            List<String> cols = t.columns().stream()
+                    .map(c -> c.name() + " " + c.type())
+                    .toList();
             sb.append("表 ").append(t.table()).append("（").append(t.rowCount()).append(" 行），列：")
-                    .append(String.join(", ", t.columns())).append("\n");
+                    .append(String.join(", ", cols)).append("\n");
+        }
+        if (relations != null && !relations.isEmpty()) {
+            sb.append("表关系：\n");
+            for (TableRelation r : relations) {
+                sb.append(r.table()).append(".").append(r.column())
+                        .append(" -> ").append(r.refTable()).append(".").append(r.refColumn()).append("\n");
+            }
         }
         return sb.toString();
     }

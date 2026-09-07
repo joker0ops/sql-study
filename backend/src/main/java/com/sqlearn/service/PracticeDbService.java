@@ -1,6 +1,8 @@
 package com.sqlearn.service;
 
+import com.sqlearn.dto.ColumnInfo;
 import com.sqlearn.dto.SqlResult;
+import com.sqlearn.dto.TableRelation;
 import com.sqlearn.dto.TableSchema;
 import com.sqlearn.exception.BizException;
 import com.zaxxer.hikari.HikariConfig;
@@ -75,10 +77,12 @@ public class PracticeDbService {
         List<TableSchema> schemas = new ArrayList<>();
         try (Connection conn = getDataSource(userId).getConnection()) {
             for (String table : TABLES) {
-                List<String> columns = new ArrayList<>();
+                List<ColumnInfo> columns = new ArrayList<>();
                 try (ResultSet rs = conn.getMetaData().getColumns(null, null, table.toUpperCase(), null)) {
                     while (rs.next()) {
-                        columns.add(rs.getString("COLUMN_NAME").toLowerCase());
+                        String name = rs.getString("COLUMN_NAME").toLowerCase();
+                        String type = friendlyType(rs.getString("TYPE_NAME"));
+                        columns.add(new ColumnInfo(name, type));
                     }
                 }
                 long rowCount = 0;
@@ -88,12 +92,52 @@ public class PracticeDbService {
                         rowCount = rs.getLong(1);
                     }
                 }
-                schemas.add(new TableSchema(table, columns, rowCount));
+                List<List<Object>> sampleRows = new ArrayList<>();
+                try (Statement st = conn.createStatement();
+                     ResultSet rs = st.executeQuery("SELECT * FROM " + table + " LIMIT 3")) {
+                    ResultSetMetaData md = rs.getMetaData();
+                    int colCount = md.getColumnCount();
+                    while (rs.next()) {
+                        List<Object> row = new ArrayList<>();
+                        for (int i = 1; i <= colCount; i++) {
+                            row.add(rs.getObject(i));
+                        }
+                        sampleRows.add(row);
+                    }
+                }
+                schemas.add(new TableSchema(table, columns, rowCount, sampleRows));
             }
         } catch (Exception e) {
             throw new BizException("读取数据库结构失败: " + e.getMessage());
         }
         return schemas;
+    }
+
+    /**
+     * 练习库中的表关系（静态定义，与建表列命名约定一致）。
+     */
+    public List<TableRelation> getRelations() {
+        return List.of(
+                new TableRelation("products", "category_id", "categories", "category_id"),
+                new TableRelation("orders", "customer_id", "customers", "customer_id"),
+                new TableRelation("order_items", "order_id", "orders", "order_id"),
+                new TableRelation("order_items", "product_id", "products", "product_id"),
+                new TableRelation("employees", "department_id", "departments", "department_id"),
+                new TableRelation("employees", "manager_id", "employees", "employee_id")
+        );
+    }
+
+    private String friendlyType(String type) {
+        if (type == null) {
+            return "";
+        }
+        return switch (type.toUpperCase()) {
+            case "INTEGER", "INT", "BIGINT" -> "INT";
+            case "CHARACTER VARYING", "VARCHAR", "CHAR", "CHARACTER" -> "VARCHAR";
+            case "NUMERIC", "DECIMAL" -> "DECIMAL";
+            case "DATE" -> "DATE";
+            default -> type;
+        };
     }
 
     public SqlResult executeSql(Long userId, String sql) {

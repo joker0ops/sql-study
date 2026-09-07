@@ -53,6 +53,56 @@
         </el-card>
 
         <el-card class="block" shadow="never">
+          <div class="card-head">
+            <span class="card-title">数据库结构</span>
+            <el-tag size="small" type="info">{{ status.schema.length }} 张表</el-tag>
+          </div>
+          <div class="sub-title">表关系</div>
+          <div class="relation-list">
+            <div
+              v-for="r in status.relations"
+              :key="r.table + r.column + r.refTable + r.refColumn"
+              class="relation-item"
+            >
+              <code>{{ r.table }}.{{ r.column }}</code>
+              <span class="arrow">→</span>
+              <code>{{ r.refTable }}.{{ r.refColumn }}</code>
+            </div>
+          </div>
+          <el-collapse class="schema-collapse">
+            <el-collapse-item v-for="t in status.schema" :key="t.table" :name="t.table">
+              <template #title>
+                <span class="table-name">{{ t.table }}</span>
+                <span class="table-rows">{{ t.rowCount }} 行</span>
+              </template>
+              <div class="column-list">
+                <span v-for="c in t.columns" :key="c.name" class="column-chip">
+                  <code>{{ c.name }}</code>
+                  <span class="col-type">{{ c.type }}</span>
+                </span>
+              </div>
+              <div v-if="t.sampleRows && t.sampleRows.length" class="sample-block">
+                <div class="sub-title">示例数据</div>
+                <div class="table-wrap">
+                  <table class="sample-table">
+                    <thead>
+                      <tr>
+                        <th v-for="c in t.columns" :key="c.name">{{ c.name }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, ri) in t.sampleRows" :key="ri">
+                        <td v-for="(cell, ci) in row" :key="ci">{{ cell }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </el-card>
+
+        <el-card class="block" shadow="never">
           <div class="card-head"><span class="card-title">编写 SQL</span></div>
           <el-input
             v-model="sql"
@@ -141,7 +191,7 @@ import HeatmapChart from '../components/HeatmapChart.vue'
 import AccuracyChart from '../components/AccuracyChart.vue'
 
 const loaded = ref(false)
-const status = reactive({ configured: false, apiUrl: '', maskedApiKey: '', modelName: '', databaseCreated: false, schema: [] })
+const status = reactive({ configured: false, apiUrl: '', maskedApiKey: '', modelName: '', databaseCreated: false, schema: [], relations: [] })
 const form = reactive({ apiUrl: '', apiKey: '', modelName: '' })
 const saving = ref(false)
 const initializing = ref(false)
@@ -392,6 +442,84 @@ onMounted(async () => {
 .overall-meta {
   color: #8a94a6;
   font-size: 13px;
+}
+.sub-title {
+  font-size: 13px;
+  color: #8a94a6;
+  margin: 8px 0 6px;
+}
+.relation-list {
+  margin-bottom: 8px;
+}
+.relation-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+  margin-right: 16px;
+  padding: 2px 0;
+}
+.relation-item code {
+  background: #f5f7fa;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #303133;
+}
+.arrow {
+  color: #a0a6b0;
+}
+.schema-collapse {
+  border-top: 1px solid #f0f2f5;
+}
+.table-name {
+  font-weight: 600;
+  color: #1f3b73;
+  margin-right: 8px;
+}
+.table-rows {
+  font-size: 12px;
+  color: #a0a6b0;
+}
+.column-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.column-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+.column-chip code {
+  font-weight: 600;
+  color: #303133;
+}
+.col-type {
+  color: #8a94a6;
+  font-size: 11px;
+}
+.sample-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.sample-table th,
+.sample-table td {
+  border: 1px solid #e6e8eb;
+  padding: 3px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+.sample-table th {
+  background: #f5f7fa;
+  color: #1f3b73;
 }
 @media (max-width: 900px) {
   .practice-layout {
