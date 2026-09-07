@@ -30,3 +30,6 @@ app:
     expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  practice:
+    # 每用户专属 H2 练习数据库目录
+    db-dir: ${PRACTICE_DB_DIR:./data/practice}

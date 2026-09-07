@@ -21,7 +21,8 @@ const routes = [
       { path: '', name: 'dashboard', component: () => import('../views/Dashboard.vue') },
       { path: 'courses', name: 'courses', component: () => import('../views/CourseList.vue') },
       { path: 'courses/:id', name: 'course-detail', component: () => import('../views/CourseDetail.vue') },
-      { path: 'progress', name: 'progress', component: () => import('../views/Progress.vue') }
+      { path: 'progress', name: 'progress', component: () => import('../views/Progress.vue') },
+      { path: 'ai', name: 'ai', component: () => import('../views/AiPractice.vue') }
     ]
   }
 ]

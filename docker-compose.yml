@@ -32,6 +32,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?set_APP_JWT_SECRET_in_.env}
       H2_CONSOLE_ENABLED: "false"
+      PRACTICE_DB_DIR: /app/data/practice
+    volumes:
+      - practice-data:/app/data/practice
     # 后端仅经前端 nginx 反代访问，不对外暴露端口；如需调试可取消下面注释
     # ports:
     #   - "8080:8080"
@@ -46,3 +49,4 @@ services:
 
 volumes:
   mysql-data:
+  practice-data:
