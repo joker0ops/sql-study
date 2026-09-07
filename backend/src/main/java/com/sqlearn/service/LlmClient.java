@@ -3,12 +3,18 @@ package com.sqlearn.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sqlearn.exception.BizException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,12 +28,44 @@ public class LlmClient {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
-    public LlmClient(ObjectMapper objectMapper) {
+    public LlmClient(ObjectMapper objectMapper,
+                     @Value("${app.ai.insecure-ssl:false}") boolean insecureSsl) {
         this.objectMapper = objectMapper;
+        if (insecureSsl) {
+            trustAllCertificates();
+        }
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(10_000);
         factory.setReadTimeout(60_000);
         this.restClient = RestClient.builder().requestFactory(factory).build();
+    }
+
+    /**
+     * 信任所有 HTTPS 证书并关闭主机名校验，仅用于内网自签名证书的接口。
+     */
+    private static void trustAllCertificates() {
+        try {
+            TrustManager[] trustAll = new TrustManager[]{
+                    new X509TrustManager() {
+                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                            return new java.security.cert.X509Certificate[0];
+                        }
+
+                        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+                        }
+
+                        public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+                        }
+                    }
+            };
+            SSLContext sc = SSLContext.getInstance("TLS");
+            sc.init(null, trustAll, new SecureRandom());
+            SSLContext.setDefault(sc);
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+            HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
+        } catch (Exception e) {
+            throw new IllegalStateException("无法配置信任所有证书", e);
+        }
     }
 
     public String chat(String apiUrl, String apiKey, String model, String systemPrompt, String userPrompt) {

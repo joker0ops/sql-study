@@ -33,3 +33,6 @@ app:
   practice:
     # 每用户专属 H2 练习数据库目录
     db-dir: ${PRACTICE_DB_DIR:./data/practice}
+  ai:
+    # 是否跳过 HTTPS 证书校验（仅用于内网自签名证书的模型接口，默认关闭）
+    insecure-ssl: ${APP_AI_INSECURE_SSL:false}
