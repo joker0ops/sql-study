@@ -69,11 +69,16 @@ public class LlmClient {
     }
 
     public String chat(String apiUrl, String apiKey, String model, String systemPrompt, String userPrompt) {
-        return chat(apiUrl, apiKey, model, systemPrompt, userPrompt, null);
+        return chat(apiUrl, apiKey, model, systemPrompt, userPrompt, null, null);
     }
 
     public String chat(String apiUrl, String apiKey, String model, String systemPrompt, String userPrompt,
                        Integer maxTokens) {
+        return chat(apiUrl, apiKey, model, systemPrompt, userPrompt, maxTokens, null);
+    }
+
+    public String chat(String apiUrl, String apiKey, String model, String systemPrompt, String userPrompt,
+                       Integer maxTokens, Double temperature) {
         String url = apiUrl.endsWith("/") ? apiUrl + "chat/completions" : apiUrl + "/chat/completions";
 
         Map<String, Object> body = new HashMap<>();
@@ -82,7 +87,7 @@ public class LlmClient {
                 Map.of("role", "system", "content", systemPrompt),
                 Map.of("role", "user", "content", userPrompt)
         ));
-        body.put("temperature", 0.3);
+        body.put("temperature", temperature != null ? temperature : 0.3);
         if (maxTokens != null) {
             body.put("max_tokens", maxTokens);
         }

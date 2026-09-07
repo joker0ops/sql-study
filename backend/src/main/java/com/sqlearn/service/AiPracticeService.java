@@ -27,16 +27,29 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.TreeMap;
 
 @Service
 public class AiPracticeService {
 
     private static final String QUESTION_SYSTEM = "你是一位专业的 SQL 教学助手。请根据给定的数据库表结构，出一道 SQL 练习题让用户编写 SQL 语句完成。"
-            + "题目覆盖常用知识点（查询、过滤、聚合、连接、排序、分组、子查询等），只用简体中文出题。"
+            + "题目要覆盖不同知识点（查询、过滤、聚合、连接、排序、分组、子查询等），难度也要有变化，避免重复和雷同。只用简体中文出题。"
             + "严格只输出一个 JSON 对象，不要输出任何多余文字或代码块，格式："
             + "{\"question\":\"题目\",\"difficulty\":\"简单|中等|困难\",\"hint\":\"提示\",\"tables\":[\"用到的表\"]}";
+
+    private static final List<String> KNOWLEDGE_POINTS = List.of(
+            "基础查询（SELECT / WHERE 过滤）",
+            "聚合函数（COUNT / SUM / AVG / MAX / MIN）",
+            "分组统计（GROUP BY / HAVING）",
+            "多表连接（JOIN）",
+            "子查询",
+            "排序与分页（ORDER BY / LIMIT）",
+            "模式匹配与范围（LIKE / IN / BETWEEN）",
+            "自连接与层级关系"
+    );
 
     private static final String JUDGE_SYSTEM = "你是一位 SQL 教学助手。请判断用户针对给定题目所写 SQL 是否正确，并给出反馈与改进建议。"
             + "严格只输出一个 JSON 对象，不要输出任何多余文字或代码块，格式："
@@ -123,8 +136,24 @@ public class AiPracticeService {
         String schemaDesc = buildSchemaDescription(
                 practiceDbService.getSchema(userId), practiceDbService.getRelations());
 
+        String knowledgePoint = KNOWLEDGE_POINTS.get(new Random().nextInt(KNOWLEDGE_POINTS.size()));
+        List<String> recentQuestions = exerciseRecordRepository
+                .findTop5ByUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(ExerciseRecord::getQuestion)
+                .filter(Objects::nonNull)
+                .toList();
+
+        StringBuilder prompt = new StringBuilder("数据库表结构如下：\n").append(schemaDesc);
+        if (!recentQuestions.isEmpty()) {
+            prompt.append("\n你最近出过的题（请避免重复）：\n");
+            for (String q : recentQuestions) {
+                prompt.append("- ").append(q).append("\n");
+            }
+        }
+        prompt.append("\n本次请围绕知识点【").append(knowledgePoint).append("】出一道新题。");
+
         String content = llmClient.chat(config.getApiUrl(), config.getApiKey(), config.getModelName(),
-                QUESTION_SYSTEM, "数据库表结构如下：\n" + schemaDesc + "\n请出题。");
+                QUESTION_SYSTEM, prompt.toString(), 300, 0.9);
 
         JsonNode node = parseJson(content);
         String question = text(node, "question");
@@ -148,7 +177,7 @@ public class AiPracticeService {
         try {
             content = llmClient.chat(config.getApiUrl(), config.getApiKey(), config.getModelName(),
                     JUDGE_SYSTEM, "题目：" + req.question() + "\n用户 SQL：" + req.userSql()
-                            + "\n执行情况：" + execDesc + "\n请判断是否正确并给出建议。");
+                            + "\n执行情况：" + execDesc + "\n请判断是否正确并给出建议。", 1000);
         } catch (BizException e) {
             // LLM 失败：不写做题记录，仅返回执行结果与错误信息
             return new AiExecuteResponse(result, null, "AI 判题失败：" + e.getMessage(), null, null);
